@@ -1,0 +1,6 @@
+--class-path src
+--main Client
+--library heaps
+--js bin/game.js
+--define windowSize=175x148
+--debug

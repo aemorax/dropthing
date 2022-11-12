@@ -1,0 +1,3 @@
+bin/*
+!bin/index.html
+node_modules/

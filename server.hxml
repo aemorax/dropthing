@@ -1,0 +1,4 @@
+--library colyseus-websocket
+--class-path src
+--main Server
+--python bin/server.py
