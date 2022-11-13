@@ -68,8 +68,15 @@ class Room {
     }
     #end
 
-    public function drop(player:Int, column:Int) {
+    public function drop(player:Int, column:Int): Int {
+        var emptyRow = getEmptyRowOfColumn(column);
+        if(emptyRow == -1)
+            return -1;
 
+        roomData.turn = player == 1 ? 0 : 1;
+        set(player, column, emptyRow, true);
+
+        return emptyRow;
     }
 
     public function set(value:Int, column:Int, row:Int, ?shouldSync:Bool = true) {
