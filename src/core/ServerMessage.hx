@@ -2,7 +2,8 @@ package core;
 
 enum abstract ServerMessageType(Int) {
     var Connected;
-    var RoomUpdate;   
+    var RoomReady;
+    var RoomUpdate;
 }
 
 typedef ServerMessage = {

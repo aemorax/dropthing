@@ -1,5 +1,6 @@
 package core;
 
+import core.ClientMessage.ClientMessageType;
 import haxe.ds.Vector;
 import haxe.Json;
 #if sys
@@ -12,6 +13,8 @@ class Room {
     #if sys
     var sock1 : Null<WebSocket>;
     var sock2 : Null<WebSocket>;
+    var p1Id : Int = -1;
+    var p2Id : Int = -1;
     #end
     public var roomData:RoomData;
     
@@ -59,12 +62,48 @@ class Room {
         syncRoomData();
     }
 
+    #if js
+    public static function fromRoomData(data:RoomData):Room {
+        var room = new Room(data.rowsCount, data.columnCount);
+        room.roomData = data;
+        return room;
+    }
+    #end
+
     #if sys
     public function join(player2:WebSocket) {
         this.sock2 = player2;
         roomData.roomState = Math.random() > 0.5 ? Player1Turn : Player2Turn;
         syncRoomData();
+
+        this.sock1.onmessageString = handleRequests;
+        this.sock2.onmessageString = handleRequests;
     }
+
+    function handleRequests(e:String) {
+        var data : ClientMessage = Json.parse(e);
+        trace(data);
+
+        var type : ClientMessageType = data.type;
+
+        switch (type) {
+            case Drop:
+                tryDrop(data);
+            case _:
+                trace("Unknown");
+        }
+    }
+
+    function tryDrop(data:ClientMessage) {
+        var player = data.playerId;
+        var dropData : DropData = data.data;
+        if(player == p1Id && roomData.roomState == Player1Turn) {
+            drop(1, dropData.column);
+        } else if(player == p2Id && roomData.roomState == Player2Turn) {
+            drop(2, dropData.column);
+        }
+    }
+
     #end
 
     public function drop(player:Int, column:Int): Int {

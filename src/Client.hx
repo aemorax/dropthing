@@ -1,5 +1,8 @@
 package;
 
+import core.DropData;
+import core.ClientMessage;
+import core.Room;
 #if js
 
 import core.RoomData;
@@ -22,25 +25,20 @@ class Client extends hxd.App {
 	var server : String = "ws://localhost:8000";
 	var socket : WebSocket;
 	var playerID : Int;
+	var room : Room;
 
 	var mainMenu : Object;
 	var waitScene : Object;
+	var gameScene : Object;
 
 	var waitingText : Text;
 
 	var atlas : Tile;
 	var font20 : Font;
-	var p1Turn : Bool = true;
 	var board : Tile;
 	var piece : Tile;
-
-	var pices : Object;
-	
-	var row1 : Interactive;
-	var row2 : Interactive;
-	var row3 : Interactive;
-	var row4 : Interactive;
-	var row5 : Interactive;
+	var boardObj : Object;
+	var piecesObj : Object;
 
 	var m : Array<Int> = new Array<Int>();
 
@@ -54,6 +52,7 @@ class Client extends hxd.App {
 
 	function loadAtlas() {
 		atlas = hxd.Res.boardandpiece.toTile();
+		board = atlas.sub(0, 0, 22, 98);
 		var fontBuildOpt : FontBuildOptions = {
 			antiAliasing: false
 		};
@@ -65,95 +64,13 @@ class Client extends hxd.App {
 		s2d.scaleMode = ScaleMode.LetterBox(175,148);
 		loadAtlas();
 
-		createMainMenu();
-		createWaitScene();
-		s2d.addChild(mainMenu);
-
-		for(i in -9...1)
-			trace(Math.abs(i));
-
-
-		/*
-		drawField();
-		createNewModel();
-		pices = new Object(s2d);
-		pices.x = 10;
-		pices.y = 20;
-
-		var b = new Bitmap(board, s2d);
-		b.x = 10;
-		b.y = 20;
-
-		row1 = new Interactive(22, 98, b);
-		row2 = new Interactive(22, 98, b);
-		row2.x = row1.x + 23;
-		row3 = new Interactive(22, 98, b);
-		row3.x = row2.x + 23;
-		row4 = new Interactive(22, 98, b);
-		row4.x = row3.x + 23;
-		row5 = new Interactive(22, 98, b);
-		row5.x = row4.x + 23;
-
-		row1.onClick = function e(e:hxd.Event) {
-			if(p1Turn) {
-				if(drop(1, 0) == -1)
-					return;
-				p1Turn = false;
-			} else {
-				if(drop(2, 0) == -1)
-					return;
-				p1Turn = true;
-			}
-		}
-
-		row2.onClick = function e(e:hxd.Event) {
-			if(p1Turn) {
-				if(drop(1, 1) == -1)
-					return;
-				p1Turn = false;
-			} else {
-				if(drop(2, 1) == -1)
-					return;
-				p1Turn = true;
-			}
-		}
-
-		row3.onClick = function e(e:hxd.Event) {
-			if(p1Turn) {
-				if(drop(1, 2) == -1)
-					return;
-				p1Turn = false;
-			} else {
-				if(drop(2, 2) == -1)
-					return;
-				p1Turn = true;
-			}
-		}
-
-		row4.onClick = function e(e:hxd.Event) {
-			if(p1Turn) {
-				if(drop(1, 3) == -1)
-					return;
-				p1Turn = false;
-			} else {
-				if(drop(2, 3) == -1)
-					return;
-				p1Turn = true;
-			}
-		}
+		//createMainMenu();
+		//createWaitScene();
 		
-		row5.onClick = function e(e:hxd.Event) {
-			if(p1Turn) {
-				if(drop(1, 4) == -1)
-					return;
-				p1Turn = false;
-			} else {
-				if(drop(2, 4) == -1)
-					return;
-				p1Turn = true;
-			}
-		}
-		*/
+		drawField(5, 7);
+		s2d.addChild(gameScene);
+
+		//s2d.addChild(mainMenu);
 	}
 	/*
 		 __  __           _             __  __                        
@@ -228,8 +145,10 @@ class Client extends hxd.App {
 		switch (type) {
 			case Connected:
 				waitForOpponent(data);
-			case RoomUpdate:
+			case RoomReady:
 				setRoomData(data);
+			case RoomUpdate:
+				updateRoom(data);
 			case _:
 				socket.close();
 		}
@@ -246,12 +165,14 @@ class Client extends hxd.App {
 
 	function setRoomData(data :ServerMessage) {
 		var roomData : RoomData = data.data;
-		/*
-		switch (roomData.roomState) {
-			case Ready:
+		room = Room.fromRoomData(roomData);
+		drawField(roomData.rowsCount, roomData.columnCount);
+	}
 
-		}
-		*/
+	function updateRoom(data : ServerMessage ) : Void {
+		var roomData : RoomData = data.data;
+		room.roomData = roomData;
+		updateField();
 	}
 
 	function reset() {
@@ -271,159 +192,55 @@ class Client extends hxd.App {
 		waitingText.y = 70 - (waitingText.textHeight/2);
 	}
 
-	function createNewModel() {
-		for (i in 0...25) {
-			m[i] = 0;
-		}
-	}
+	/*
+   _____                        _                 _      
+  / ____|                      | |               (_)     
+ | |  __  __ _ _ __ ___   ___  | |     ___   __ _ _  ___ 
+ | | |_ |/ _` | '_ ` _ \ / _ \ | |    / _ \ / _` | |/ __|
+ | |__| | (_| | | | | | |  __/ | |___| (_) | (_| | | (__ 
+  \_____|\__,_|_| |_| |_|\___| |______\___/ \__, |_|\___|
+                                             __/ |       
+                                            |___/        
+	*/
 
-	function drop(p:Int, row:Int) : Int {
-		var c : Int = getEmptyColumnOfRow(row);
-		trace(c);
-		if(c == -1)
-			return -1;
+	/**
+		Generates a new board from model.
+	**/
+	function drawField(rowCount:Int, columnCount:Int) : Void {
+		gameScene = new Object();
+		var x : Int = 11;
+		var y : Int = 46;
 
-		set(c, row, p);
-
-		var p1 = new Bitmap(piece);
-		if(p == 1)
-			p1.color = COLOR_RED;
-		else
-			p1.color = Color_BLUE;
-
-		p1.y = 79-(c*19);
-		p1.x = (row*22)+3;
-
-		pices.addChild(p1);
-		return 0;
-	}
-
-	function getEmptyColumnOfRow(row : Int) : Int {
-		for (i in 0...5) {
-			trace(m[i*5+row]);
-			if(m[i*5+row] == 0)
-				return i;
-		}
-		return -1;
-	}
-
-	function get(column : Int, row : Int) : Int {
-		return this.m[column*5+row];
-	}
-
-	function set(column : Int, row : Int, value : Int) {
-		this.m[column*5+row] = value;
-	}
-
-	function getDiagonals(): Int {
-		var a : Int = get(1,0);
-		var b : Int = get(2,1);
-		var c : Int = get(3,2);
-		var d : Int = get(4,3);
-		var d1 = a | b | c | d;
-		if(d1 == 1)
-			return 1;
-		else if (d1 == 2)
-			return 2;
-		
-		a = get(0,0);
-		b = get(1,1);
-		c = get(2,2);
-		d = get(3,3);
-		d1 = a | b | c | d;
-		if(d1 == 1)
-			return 1;
-		else if(d1 == 2)
-			return 2;
-
-		a = get(4,4);
-		d1 = a | b | c | d;
-		if(d1 == 1)
-			return 1;
-		else if(d1 == 2)
-			return 2;
-
-		a = get(0,1);
-		b = get(1,2);
-		c = get(2,3);
-		d = get(3,4);
-		if(d1 == 1)
-			return 1;
-		else if(d1 == 2)
-			return 2;
-
-		return 0;
-	}
-
-	function getHorizontals() : Int {
-		var a : Int = 0;
-		var b : Int = 0;
-		var c : Int = 0;
-		var d : Int = 0;
-		var d1 : Int = 0;
-
-		for(i in 0...5)
-		{
-			for(j in 0...2) {
-				a = get(i, 0+j);
-				b = get(i, 1+j);
-				c = get(i, 2+j);
-				d = get(i, 3+j);
-				d1 = a | b | c | d;
-				if(d1 == 1)
-					return 1;
-				else if(d1 == 2)
-					return 2;
-			}
+		for (i in 0...columnCount) {
+			var b = new Bitmap(board,gameScene);
+			b.color = new Vector(225/255, 109/255, 54/255, 1);
+			b.x = x;
+			b.y = y;
+			x+=22;
 		}
 
-		return 0;
+		var interactive = new Interactive(22*columnCount, 98, gameScene);
+		interactive.x = 11;
+		interactive.y = 46;
+		interactive.onClick = drop;
 	}
 
-	function getVerticals() : Int {
-		var a : Int = 0;
-		var b : Int = 0;
-		var c : Int = 0;
-		var d : Int = 0;
-		var d1: Int = 0;
-
-		for (i in 0...5) {
-			for(j in 0...2) {
-				a = get(j, i);
-				b = get(j+1, i);
-				c = get(j+2, i);
-				d = get(j+3, i);
-				d1 = a | b | c | d;
-				if(d1 == 1)
-					return 1;
-				else if(d1 == 2)
-					return 2;
-			}
-		}
-
-		return 0;
+	function drop(e:hxd.Event) {
+		var column : Int = Math.floor(e.relX/22);
+		var dropData : DropData = {
+			column: column
+		};
+		var message : ClientMessage = {
+			room: this.room.roomID,
+			playerId: this.playerID,
+			type: Drop,
+			data: dropData
+		};
+		this.socket.send(Json.stringify(message));
 	}
 
-	function checkWinning() : Int {
-		var d  = getDiagonals();
-		if(d != 0)
-			return d;
+	function updateField() {
 
-		d = getHorizontals();
-		if(d != 0)
-			return d;
-
-		d = getVerticals();
-		if(d != 0)
-			return d;
-
-		return 0;
-	}
-
-	function drawField() : Void {
-		var boardAndPiece = hxd.Res.boardandpiece.toTile();
-		board = boardAndPiece.sub(0, 0, 110, 98);
-		piece = boardAndPiece.sub(110, 0, 16, 16);
 	}
 
 	override function update(_) : Void {}
