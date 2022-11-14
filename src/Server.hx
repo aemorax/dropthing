@@ -1,18 +1,14 @@
 package;
 
+#if python
 import python.Exceptions.KeyboardInterrupt;
 import core.Room;
 import haxe.Json;
 import core.ServerMessage;
 import core.JoinData;
-#if python
-
 import haxe.CallStack;
-import haxe.io.Bytes;
 import haxe.net.WebSocket;
 import haxe.net.WebSocketServer;
-import sys.thread.Thread;
-import sys.net.Host;
 
 class WebSocketHandler {
   static var _nextId = 0;
@@ -53,7 +49,6 @@ class WebSocketHandler {
         } else {
             room = Server.openRooms.pop();
             room.join(_websocket);
-            
         }
     }
 

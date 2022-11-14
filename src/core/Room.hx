@@ -50,11 +50,11 @@ class Room {
         }
         roomData = {
             roomID: roomID,
-            roomState: Wait,
+            roomState: JoiningPhase,
             rowsCount: rowCount,
             columnCount: columnCount,
-            turn: 0,
-            blocks: v
+            blocks: v,
+            winner: 0
         }
         syncRoomData();
     }
@@ -62,8 +62,7 @@ class Room {
     #if sys
     public function join(player2:WebSocket) {
         this.sock2 = player2;
-        roomData.roomState = Ready;
-        roomData.turn = Math.random() > 0.5 ? 1 : 0;
+        roomData.roomState = Math.random() > 0.5 ? Player1Turn : Player2Turn;
         syncRoomData();
     }
     #end
@@ -73,8 +72,10 @@ class Room {
         if(emptyRow == -1)
             return -1;
 
-        roomData.turn = player == 1 ? 0 : 1;
-        set(player, column, emptyRow, true);
+        roomData.roomState = player == 1 ? Player2Turn : Player1Turn;
+        set(player, column, emptyRow, false);
+        roomData.winner = checkWinningCondition();
+        syncRoomData();
 
         return emptyRow;
     }
@@ -95,5 +96,116 @@ class Room {
                 return i;
         }
         return -1;
+    }
+
+    /*
+        Checks if players win or not.
+        returns number corresponding to player number and 0 if none.
+    */
+    function checkWinningCondition() : Int {
+        var value = 0;
+        value = checkDiagonals();
+        if(value != 0)
+            return value;
+        value = checkHorizontals();
+        if(value != 0)
+            return value;
+        value = checkVerticals();
+        if(value != 0)
+            return value;
+        return 0;
+    }
+
+    function checkDiagonals() {
+        var rc = roomData.rowsCount;
+        var cc = roomData.columnCount;
+
+        var a = 0;
+        var b = 0;
+        var c = 0;
+        var d = 0;
+        var eval = 0;
+
+        for (row in 0...rc-3) {
+            for(column in 0...cc-3) {
+                a = get(column, row);
+                b = get(column+1, row+1);
+                c = get(column+2, row+2);
+                d = get(column+3, row+3);
+                eval = a | b | c | d;
+                eval = filterEvaluated(eval);
+                if(eval != 0)
+                    return eval;
+
+                a = get(column, row+3);
+                b = get(column+1, row+2);
+                c = get(column+2, row+1);
+                d = get(column+3, row);
+                eval = a | b | c | d;
+                eval = filterEvaluated(eval);
+                if(eval != 0)
+                    return eval;
+            }
+        }
+        return 0;
+    }
+
+    function checkHorizontals() {
+        var rc = roomData.rowsCount;
+        var cc = roomData.columnCount;
+
+        var a = 0;
+        var b = 0;
+        var c = 0;
+        var d = 0;
+        var eval = 0;
+
+        for (col in 0...cc-3) {
+            for (row in 0...rc) {
+                a = get(col, row);
+                b = get(col+1, row);
+                c = get(col+2, row);
+                d = get(col+3, row);
+                eval = a | b | c | d;
+                eval = filterEvaluated(eval);
+                if(eval != 0)
+                    return eval;
+            }
+        }
+        return 0;
+    }
+
+    function checkVerticals() {
+        var rc = roomData.rowsCount;
+        var cc = roomData.columnCount;
+
+        var a = 0;
+        var b = 0;
+        var c = 0;
+        var d = 0;
+        var eval = 0;
+
+        for (col in 0...cc) {
+            for (row in 0...rc-3) {
+                a = get(col, row);
+                b = get(col, row+1);
+                c = get(col, row+2);
+                d = get(col, row+3);
+                eval = a | b | c | d;
+                eval = filterEvaluated(eval);
+                if(eval != 0)
+                    return eval;
+            }
+        }
+        return 0;
+    }
+
+    function filterEvaluated(eval:Int):Int {
+        if(eval == 1)
+            return 1;
+        if(eval == 2)
+            return 2;
+
+        return 0;
     }
 }
