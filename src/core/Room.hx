@@ -26,7 +26,6 @@ class Room {
         };
 
         var roomString = Json.stringify(roomMessage);
-        trace(roomString);
 
     #if sys
         if(sock1 != null) {
@@ -147,15 +146,12 @@ class Room {
     function checkWinningCondition() : Int {
         var value = 0;
         value = checkDiagonals();
-        trace('Diagonals: ${value}');
         if(value != 0)
             return value;
         value = checkHorizontals();
-        trace('Horizontals: ${value}');
         if(value != 0)
             return value;
         value = checkVerticals();
-        trace('Verticals: ${value}');
         if(value != 0)
             return value;
         return 0;
@@ -177,7 +173,7 @@ class Room {
                 b = get(column+1, row+1);
                 c = get(column+2, row+2);
                 d = get(column+3, row+3);
-                eval = a | b | c | d;
+                eval = a & b & c & d;
                 eval = filterEvaluated(eval);
                 if(eval != 0)
                     return eval;
@@ -186,7 +182,7 @@ class Room {
                 b = get(column+1, row+2);
                 c = get(column+2, row+1);
                 d = get(column+3, row);
-                eval = a | b | c | d;
+                eval = a & b & c & d;
                 eval = filterEvaluated(eval);
                 if(eval != 0)
                     return eval;
@@ -211,7 +207,7 @@ class Room {
                 b = get(col+1, row);
                 c = get(col+2, row);
                 d = get(col+3, row);
-                eval = a | b | c | d;
+                eval = a & b & c & d;
                 eval = filterEvaluated(eval);
                 if(eval != 0)
                     return eval;
@@ -236,7 +232,7 @@ class Room {
                 b = get(col, row+1);
                 c = get(col, row+2);
                 d = get(col, row+3);
-                eval = a | b | c | d;
+                eval = a & b & c & d;
                 eval = filterEvaluated(eval);
                 if(eval != 0)
                     return eval;
