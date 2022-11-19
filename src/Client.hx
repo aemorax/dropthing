@@ -53,6 +53,7 @@ class Client extends hxd.App {
 	function loadAtlas() {
 		atlas = hxd.Res.boardandpiece.toTile();
 		board = atlas.sub(0, 0, 22, 98);
+		piece = atlas.sub(22,31, 16,16);
 		var fontBuildOpt : FontBuildOptions = {
 			antiAliasing: false
 		};
@@ -64,13 +65,9 @@ class Client extends hxd.App {
 		s2d.scaleMode = ScaleMode.LetterBox(175,148);
 		loadAtlas();
 
-		//createMainMenu();
-		//createWaitScene();
-		
-		drawField(5, 7);
-		s2d.addChild(gameScene);
-
-		//s2d.addChild(mainMenu);
+		createMainMenu();
+		createWaitScene();
+		s2d.addChild(mainMenu);
 	}
 	/*
 		 __  __           _             __  __                        
@@ -125,7 +122,6 @@ class Client extends hxd.App {
 	}
 
 	function joinMatch() {
-		trace("connect to server");
 		s2d.removeChild(mainMenu);
 		s2d.addChild(waitScene);
 		waitingText.text = "Connecting To Server...";
@@ -135,13 +131,8 @@ class Client extends hxd.App {
 
 	function serverMessage(event:MessageEvent) {
 		var data : ServerMessage = Json.parse(event.data);
-		trace(data);
-
 		var type : ServerMessageType = data.type;
 		var t : ServerMessageType = Connected;
-		trace(type);
-		trace(t);
-
 		switch (type) {
 			case Connected:
 				waitForOpponent(data);
@@ -155,10 +146,8 @@ class Client extends hxd.App {
 	}
 
 	function waitForOpponent(data : ServerMessage) {
-		trace("waiting for opponent");
 		var joinData : JoinData = data.data;
 		playerID = joinData.id;
-		trace(playerID);
 		waitingText.text = "Waiting For Opponent...";
 		recalculateWaitingTextPos();
 	}
@@ -167,6 +156,11 @@ class Client extends hxd.App {
 		var roomData : RoomData = data.data;
 		room = Room.fromRoomData(roomData);
 		drawField(roomData.rowsCount, roomData.columnCount);
+
+		if(room.roomData.roomState == RoomState.Ready) {
+			s2d.removeChild(waitScene);
+			s2d.addChild(gameScene);
+		}
 	}
 
 	function updateRoom(data : ServerMessage ) : Void {
@@ -208,8 +202,13 @@ class Client extends hxd.App {
 	**/
 	function drawField(rowCount:Int, columnCount:Int) : Void {
 		gameScene = new Object();
+		piecesObj = new Object();
+		gameScene.addChild(piecesObj);
 		var x : Int = 11;
 		var y : Int = 46;
+
+		piecesObj.x = x;
+		piecesObj.y = y;
 
 		for (i in 0...columnCount) {
 			var b = new Bitmap(board,gameScene);
@@ -240,7 +239,22 @@ class Client extends hxd.App {
 	}
 
 	function updateField() {
-
+		piecesObj.removeChildren();
+		for(i in 0...room.roomData.rowsCount) {
+			for(j in 0...room.roomData.columnCount) {
+				var player = room.get(j, i);
+				if(player != 0) {
+					var bmp = new Bitmap(piece, piecesObj);
+					bmp.x = (j*22)+3;
+					bmp.y = ((room.roomData.rowsCount-i-1)*19)+3;
+					if(player == 1) {
+						bmp.color = COLOR_RED;
+					} else {
+						bmp.color = Color_BLUE;
+					}
+				}
+			}
+		}
 	}
 
 	override function update(_) : Void {}

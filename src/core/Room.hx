@@ -1,5 +1,6 @@
 package core;
 
+import core.ServerMessage.ServerMessageType;
 import core.ClientMessage.ClientMessageType;
 import haxe.ds.Vector;
 import haxe.Json;
@@ -13,18 +14,19 @@ class Room {
     #if sys
     var sock1 : Null<WebSocket>;
     var sock2 : Null<WebSocket>;
-    var p1Id : Int = -1;
-    var p2Id : Int = -1;
+    public var p1Id : Int = -1;
+    public var p2Id : Int = -1;
     #end
     public var roomData:RoomData;
     
-    function syncRoomData() {
+    function syncRoomData(messageType:ServerMessageType) {
         var roomMessage : ServerMessage = {
-            type: RoomUpdate,
+            type: messageType,
             data: roomData
         };
 
         var roomString = Json.stringify(roomMessage);
+        trace(roomString);
 
     #if sys
         if(sock1 != null) {
@@ -59,7 +61,7 @@ class Room {
             blocks: v,
             winner: 0
         }
-        syncRoomData();
+        syncRoomData(RoomReady);
     }
 
     #if js
@@ -73,17 +75,18 @@ class Room {
     #if sys
     public function join(player2:WebSocket) {
         this.sock2 = player2;
-        roomData.roomState = Math.random() > 0.5 ? Player1Turn : Player2Turn;
-        syncRoomData();
+        roomData.roomState = Ready;
+        syncRoomData(RoomReady);
 
         this.sock1.onmessageString = handleRequests;
         this.sock2.onmessageString = handleRequests;
+
+        roomData.roomState = Math.random() > 0.5 ? Player1Turn : Player2Turn;
+        syncRoomData(RoomUpdate);
     }
 
     function handleRequests(e:String) {
         var data : ClientMessage = Json.parse(e);
-        trace(data);
-
         var type : ClientMessageType = data.type;
 
         switch (type) {
@@ -114,7 +117,7 @@ class Room {
         roomData.roomState = player == 1 ? Player2Turn : Player1Turn;
         set(player, column, emptyRow, false);
         roomData.winner = checkWinningCondition();
-        syncRoomData();
+        syncRoomData(RoomUpdate);
 
         return emptyRow;
     }
@@ -122,7 +125,7 @@ class Room {
     public function set(value:Int, column:Int, row:Int, ?shouldSync:Bool = true) {
         roomData.blocks.set(row*roomData.columnCount+column, value);
         if(shouldSync)
-            syncRoomData();
+            syncRoomData(RoomUpdate);
     }
 
     public function get(column:Int, row:Int) : Int {
@@ -130,7 +133,7 @@ class Room {
     }
 
     function getEmptyRowOfColumn(column:Int) : Int {
-        for(i in -(roomData.rowsCount)+1...1) {
+        for(i in 0...roomData.rowsCount) {
             if(get(column, i) == 0)
                 return i;
         }
@@ -144,12 +147,15 @@ class Room {
     function checkWinningCondition() : Int {
         var value = 0;
         value = checkDiagonals();
+        trace('Diagonals: ${value}');
         if(value != 0)
             return value;
         value = checkHorizontals();
+        trace('Horizontals: ${value}');
         if(value != 0)
             return value;
         value = checkVerticals();
+        trace('Verticals: ${value}');
         if(value != 0)
             return value;
         return 0;

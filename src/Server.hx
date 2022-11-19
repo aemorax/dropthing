@@ -46,9 +46,11 @@ class WebSocketHandler {
         if(Server.openRooms.length == 0) {
             room = new Room(_websocket, 5, 7);
             Server.openRooms.push(room);
+            room.p1Id = _id;
         } else {
             room = Server.openRooms.pop();
             room.join(_websocket);
+            room.p2Id = _id;
         }
     }
 
