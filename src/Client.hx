@@ -30,6 +30,7 @@ class Client extends hxd.App {
 	var mainMenu : Object;
 	var waitScene : Object;
 	var gameScene : Object;
+	var gameInfoText : Text;
 
 	var waitingText : Text;
 
@@ -39,6 +40,7 @@ class Client extends hxd.App {
 	var piece : Tile;
 	var boardObj : Object;
 	var piecesObj : Object;
+	var gameOver : Bool = false;
 
 	var m : Array<Int> = new Array<Int>();
 
@@ -203,6 +205,9 @@ class Client extends hxd.App {
 	function drawField(rowCount:Int, columnCount:Int) : Void {
 		gameScene = new Object();
 		piecesObj = new Object();
+		gameInfoText = new Text(font20 , gameScene);
+		gameInfoText.x = 89 - (gameInfoText.textWidth/2);
+		gameInfoText.y = 10 - (gameInfoText.textHeight/2);
 		gameScene.addChild(piecesObj);
 		var x : Int = 11;
 		var y : Int = 46;
@@ -239,6 +244,20 @@ class Client extends hxd.App {
 	}
 
 	function updateField() {
+		if(gameOver)
+			return;
+
+		if(room.roomData.roomState == Player1Turn)
+			gameInfoText.text = "Player 1 Turn";
+		else if(room.roomData.roomState == Player2Turn)
+			gameInfoText.text = "Player 2 Turn";
+
+		if(room.roomData.winner != 0) {
+			gameInfoText.text = 'Winner is Player ${room.roomData.winner}';
+			gameOver = true;
+		}
+		gameInfoText.x = 89 - (gameInfoText.textWidth/2);
+		gameInfoText.y = 10 - (gameInfoText.textHeight/2);
 		piecesObj.removeChildren();
 		for(i in 0...room.roomData.rowsCount) {
 			for(j in 0...room.roomData.columnCount) {
